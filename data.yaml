@@ -1,0 +1,31 @@
+# Agentia related configuration
+agentia_login_url: https://app.copado.com
+agentia_login_username: user@example.com
+agentia_pipeline_name: My Test Pipeline
+
+# Git repository related configuration
+git_repository_provider: GitHub
+git_repository_name: MyTestRepo
+git_repository_username: my-github-username
+git_repository_email: user@example.com
+
+# Agentia Connections, Salesforce Sandbox configuration
+sandboxes:
+    - name: mydev
+      short_name: Dev
+      username: user@example.com.mydev
+      password_variable: dev_password
+    - name: myqa
+      short_name: QA
+      username: user@example.com.myqa
+      password_variable: qa_password
+    - name: myprod
+      short_name: Prod
+      username: user@example.com.myprod
+      password_variable: prod_password
+
+# Agentia Work Manager, Work Items
+workitems:
+    - title: Sample Work Item
+      issue: CRM-1234
+      description: This is a sample work item.
