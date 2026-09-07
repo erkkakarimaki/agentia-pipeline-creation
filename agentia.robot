@@ -13,7 +13,7 @@ ${home_url}               ${login_url}
 
 *** Test Cases ***
 Create a Pipeline
-    [Documentation]             This script will login to Agentia via Salesforce and Copado Okta.
+    [Documentation]             This script will login to Agentia via Salesforce.
     ...                         It will create a GitHub repository, Git and Sandbox connections.
     ...                         It will create a Pipeline and a sample Work Item.
     ...                         Data is populated from data.yaml file.
@@ -22,16 +22,17 @@ Create a Pipeline
     Appstate                    Home
 
     # Open Pipelines
-    Navigate to Pipelines       login_username=${agentia_login_username}
+    Navigate to Pipelines
     VerifyText                  Welcome to Agentia™ Pipeline
 
     # Create a new GitHub repository
     Create new GitHub repository
     ...                        repository_name=${git_repository_name}
     ...                        repository_email=${git_repository_email}
+    ...                        repository_password=${${git_repository_password_variable}}
 
     # Add Git connection
-    Add new GitHub Repository Connection Authenticated
+    Add new GitHub Repository Connection
     ...                         repository_type=${git_repository_provider}
     ...                         repository_name=${git_repository_name}
     ...                         repository_username=${git_repository_username}
@@ -91,33 +92,33 @@ End suite
     Close All Browsers
 
 Navigate to Pipelines
-    [Arguments]    ${login_username}
+    [Arguments]    ${sf_username}=${agentia_login_username}   ${sf_password}=${agentia_login_password}
     ClickText                 Open  anchor=Pipeline  doubleclick=True
+    SwitchWindow              NEW
     ${double_login}=          IsText    Connect with Salesforce  2
     IF  ${double_login}
         ClickText             Connect with Salesforce
-        ClickText             Use Custom Domain
-        TypeText              Custom Domain  copado
-        ClickText             Continue
+        ${asking_credentials}=   IsText  Username  2
+        IF  ${asking_credentials}
+            TypeText              Username                ${sf_username}             delay=1
+            ClickText             Log In
+            TypeSecret            Password                ${sf_password}
+            ClickText             Log In
+        END
     ELSE
-        ClickText                 Select    anchor=${login_username}  tag=button
+        ClickText                 Select    anchor=${sf_username}  tag=button
     END
 
 Login
     [Documentation]       Login to Salesforce instance. Takes instance_url, username and password as
     ...                   arguments. Uses values given in Copado Robotic Testing's variables section by default.
-    ...                   Note: this uses Okta SSO MFA to login. Modify the keyword to satisfy your login process.
     [Arguments]           ${sf_instance_url}=${login_url}    ${sf_username}=${agentia_login_username}   ${sf_password}=${agentia_login_password}
     GoTo                  ${sf_instance_url}
     ClickText             Continue with Salesforce
-    ClickText             Use Custom Domain
-    TypeText              Custom Domain  copado
-    ClickText             Continue
-
     TypeText              Username                ${sf_username}             delay=1
+    ClickText             Log In
     TypeSecret            Password                ${sf_password}
-    ClickText             Sign In
-    ClickText             Send Push
+    ClickText             Log In
 
     # We'll check if variable ${secret} is given. If yes, fill the MFA dialog.
     # If not, MFA is not expected.
@@ -144,7 +145,7 @@ Home
 
 Create new GitHub repository
     [Documentation]      Create a new GitHub repository
-    [Arguments]          ${repository_name}  ${repository_email}
+    [Arguments]          ${repository_name}  ${repository_email}  ${repository_password}
 
     Log                  \nCreating a GitHub repository: ${repository_name}  console=True
     OpenWindow
@@ -152,17 +153,10 @@ Create new GitHub repository
 
     GoTo                 https://github.com
 
-    # Note, already signed in to Okta.
-
     ClickText            Sign in
-    ClickText            Continue with Google
-    TypeText             Email or phone              ${repository_email}
-    ClickText            Next
-
-    VerifyText           Verify it
-
-    ClickText            Continue
-    QVision.ClickText    Use Chromium without an account
+    TypeText             Username or email address              ${repository_email}
+    TypeSecret           Password                               ${repository_password}
+    ClickText            Sign in
 
     ${otp}=              GetOtp                      ${repository_email}   ${github_totp}
     TypeText             app_otp                     ${otp}                tag=input
@@ -182,7 +176,7 @@ Create new GitHub repository
 
     VerifyText           Initial commit
     CloseWindow
-    SwitchWindow         1
+    SwitchWindow         NEW
 
 ############
 ## Connections
@@ -197,29 +191,8 @@ Navigate to Connections
     UseModal                   On
     DropDown                   Type                        ${connection_type}
 
+
 Add new GitHub Repository Connection
-    [Documentation]            Create a new GitHub Connection
-    [Arguments]                ${repository_name}          ${repository_username}
-
-    Log                        Creating a GitHub Repository Connection  console=True
-    Navigate to Connections    connection_type=GitHub
-    TypeText                   Name                        ${repository_name}
-    UseModal                   Off
-    ClickText                  Authorize
-    SwitchWindow               NEW
-    ClickText                  Continue with Google
-    TypeText                   Email or phone              ${Agentia_US.username}
-    ClickText                  Next
-    VerifyText                 Verify it's you
-    ClickText                  Continue
-
-    SwitchWindow               1
-    ClickText                  select repository
-    DropDown                   Git Repo Url                https://github.com/${repository_username}/${repository_name}.git
-
-    ClickText                  Save
-
-Add new GitHub Repository Connection Authenticated
     [Documentation]            Create a new GitHub Connection
     ...                        when there is already an active authenticated session
     ...                        with GitHub.
@@ -232,7 +205,6 @@ Add new GitHub Repository Connection Authenticated
     UseModal                   Off
     VerifyText                 Please select a git repository before this org can be used.
 
-    SwitchWindow               1
     ClickText                  select repository
     DropDown                   Git Repo Url                https://github.com/${repository_username}/${repository_name}.git
 
@@ -241,30 +213,6 @@ Add new GitHub Repository Connection Authenticated
     ClickText                  Test connection
     VerifyText                 Success
 
-Add new GitHub Repository Connection Un-Authenticated
-    [Documentation]            Create a new GitHub Connection
-    ...                        when there is no active authenticated session
-    ...                        with GitHub.
-    [Arguments]                ${repository_name}          ${repository_username}
-
-    Navigate to Connections    connection_type=GitHub
-    TypeText                   Name                        ${repository_name}
-    ClickText                  Authorize
-    UseModal                   Off
-    VerifyText                 Please select a git repository before this org can be used.
-    SwitchWindow               NEW
-    ClickText                  Continue with Google
-    TypeText                   Email or phone              ${Agentia_US.username}
-    ClickText                  Next
-    VerifyText                 Verify it's you
-    ClickText                  Continue
-
-    SwitchWindow               1
-    ClickText                  select repository
-    DropDown                   Git Repo Url                https://github.com/${repository_username}/${repository_name}.git
-
-    ClickText                  Save
-    VerifyText                 Success
 
 Add new Salesforce Sandbox Connection
     [Documentation]            Create a new Salesforce Sandbox Connection
@@ -274,14 +222,14 @@ Add new Salesforce Sandbox Connection
     TypeText                   Name                        ${sandbox_name}
     DropDown                   Environment                 Sandbox
     ClickText                  Authorize
-    SwitchWindow               2
+    SwitchWindow               NEW
 
     TypeText                   Username                    ${sandbox_username}
     ClickText                  Log in to Sandbox
     TypeText                   Password                    ${sandbox_password}
     ClickText                  Log in to Sandbox
 
-    SwitchWindow               1
+    SwitchWindow               3
     ClickText                  Save
     Sleep                      3
 
@@ -294,7 +242,7 @@ Add new Salesforce Sandbox Connection
         ClickText              Log in to Sandbox
         TypeText               Password                    ${sandbox_password}
         ClickText              Log in to Sandbox
-        SwitchWindow           1
+        SwitchWindow           3
         Sleep                  3
         ${re-authorize}=           IsText                      Authorize                   partial_match=False
     END

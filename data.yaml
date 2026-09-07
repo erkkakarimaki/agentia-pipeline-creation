@@ -8,6 +8,7 @@ git_repository_provider: GitHub
 git_repository_name: MyTestRepo
 git_repository_username: my-github-username
 git_repository_email: user@example.com
+git_repository_password_variable: git_repository_password
 
 # Agentia Connections, Salesforce Sandbox configuration
 sandboxes:
